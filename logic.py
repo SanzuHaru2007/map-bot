@@ -1,3 +1,4 @@
+import requests
 import sqlite3
 from config import *
 import matplotlib
@@ -72,8 +73,55 @@ class DB_Map():
         plt.savefig(path)
         plt.close()
         
-    def draw_distance(self, city1, city2):
-        pass
+    def get_cities_by_country(self, country):
+        conn = sqlite3.connect(self.database)
+        with conn:
+            cur = conn.cursor()
+            cur.execute("SELECT city FROM cities WHERE country = ?", (country,))
+            return [row[0] for row in cur.fetchall()]
+
+    def get_cities_by_population(self, min_pop, max_pop):
+        conn = sqlite3.connect(self.database)
+        with conn:
+            cur = conn.cursor()
+            cur.execute("SELECT city FROM cities WHERE population BETWEEN ? AND ?", (min_pop, max_pop))
+            return [row[0] for row in cur.fetchall()]
+
+    def get_cities_by_country_and_pop(self, country, min_pop, max_pop):
+        conn = sqlite3.connect(self.database)
+        with conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT city FROM cities WHERE country = ? AND population BETWEEN ? AND ?",
+                (country, min_pop, max_pop)
+            )
+            return [row[0] for row in cur.fetchall()]
+
+    def get_weather(city_name):
+        url = f"https://wttr.in/{city_name}?format=j1"
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                current = data['current_condition'][0]
+                temp = current['temp_C']
+                desc = current['weatherDesc'][0]['value']
+                return f"Погода в {city_name}: {temp}°C, {desc}"
+        except Exception:
+            pass
+        return "Не удалось получить данные о погоде."
+
+
+    def get_local_time(lat, lng):
+        url = f"https://timeapi.io/api/Time/current/coordinate?latitude={lat}&longitude={lng}"
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                return f"Местное время: {data.get('time', 'неизвестно')} (Дата: {data.get('date', 'неизвестно')})"
+        except Exception:
+            pass
+        return "Не удалось определить время."
 
 if __name__=="__main__":
     m = DB_Map(DATABASE)

@@ -48,6 +48,47 @@ def handle_show_visited_cities(message):
     else:
         bot.send_message(message.chat.id, "Ты еще ничего не сохранил")
 
+@bot.message_handler(commands=['country'])
+def handle_country(message):
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2:
+        bot.send_message(message.chat.id, "Укажи страну")
+        return
+    
+    country = parts[1]
+    cities = manager.get_cities_by_country(country)
+    if cities:
+        manager.create_grapf('country_map.png', cities)
+        with open('country_map.png', 'rb') as photo:
+            bot.send_photo(message.chat.id, photo)
+    else:
+        bot.send_message(message.chat.id, "Не удалось найти города в этой стране")
+
+@bot.message_handler(commands=['weather'])
+def handle_weather(message):
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2:
+        bot.send_message(message.chat.id, "Укажи город")
+        return
+    city = parts[1]
+    weather_info = get_weather(city)
+    bot.send_message(message.chat.id, weather_info)
+
+@bot.message_handler(commands=['time'])
+def handle_time(message):
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2:
+        bot.send_message(message.chat.id, "Укажи город")
+        return
+    city = parts[1]
+    coords = manager.get_coordinates(city)
+    if coords:
+        lat, lng = coords
+        time_info = get_local_time(lat, lng)
+        bot.send_message(message.chat.id, f"{city} — {time_info}")
+    else:
+        bot.send_message(message.chat.id, "Город не найден в базе.")
+
 if __name__=="__main__":
     manager = DB_Map(DATABASE)
     bot.polling()
